@@ -20,7 +20,6 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
-  IconPlus,
   IconPencil,
   IconTrash,
   IconUserPlus,
@@ -70,7 +69,7 @@ export const UserCrud: React.FC = () => {
       }
       const data = await res.json();
       setUsers(data);
-    } catch (err: any) {
+    } catch {
       setError(
         'No se pudo conectar con el servidor backend (http://localhost:3001). Asegúrate de tener corriendo el servidor Fastify y la base de datos PostgreSQL.'
       );
@@ -134,10 +133,10 @@ export const UserCrud: React.FC = () => {
 
       setModalOpen(false);
       fetchUsers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       notifications.show({
         title: 'Error',
-        message: err.message || 'Ocurrió un error inesperado',
+        message: err instanceof Error ? err.message : 'Ocurrió un error inesperado',
         color: 'red',
       });
     } finally {
@@ -167,10 +166,10 @@ export const UserCrud: React.FC = () => {
       setDeleteModalOpen(false);
       setUserToDelete(null);
       fetchUsers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       notifications.show({
         title: 'Error',
-        message: err.message || 'No se pudo eliminar el usuario',
+        message: err instanceof Error ? err.message : 'No se pudo eliminar el usuario',
         color: 'red',
       });
     }
@@ -252,7 +251,7 @@ export const UserCrud: React.FC = () => {
           <Flex justify="center" align="center" p="xl" direction="column" gap="xs">
             <IconUsers size={48} color="#64748b" />
             <Text fw={500} size="lg" c="dimmed">No hay usuarios registrados</Text>
-            <Text size="sm" c="dimmed">Haz clic en "Nuevo Usuario" para agregar el primero.</Text>
+            <Text size="sm" c="dimmed">Haz clic en &quot;Nuevo Usuario&quot; para agregar el primero.</Text>
             <Button mt="xs" variant="light" color="indigo" onClick={handleOpenCreateModal}>
               Crear Usuario
             </Button>
