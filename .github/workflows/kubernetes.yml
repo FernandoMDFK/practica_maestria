@@ -1,0 +1,32 @@
+name: Deploy Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Verificar Kubernetes
+        run: kubectl get nodes
+
+      - name: Aplicar configuración
+        run: kubectl apply -f k8s/
+
+      - name: Esperar Backend
+        run: kubectl rollout status deployment/practica-backend -n devops-lab --timeout=120s
+
+      - name: Esperar Frontend
+        run: kubectl rollout status deployment/practica-frontend -n devops-lab --timeout=120s
+
+      - name: Mostrar Pods
+        run: kubectl get pods -n devops-lab
+
+      - name: Mostrar Services
+        run: kubectl get services -n devops-lab
