@@ -5,9 +5,9 @@ import pluginReact from "eslint-plugin-react";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
-  // 1. Ignorar archivos de configuración de Node/Bundlers
+  // 1. Ignorar carpetas de compilación y archivos de configuración
   { 
-    ignores: ["postcss.config.cjs", "eslint.config.js", "vite.config.ts"] 
+    ignores: ["dist", "build", "node_modules", "postcss.config.cjs", "eslint.config.js", "vite.config.ts"] 
   },
   
   { 
