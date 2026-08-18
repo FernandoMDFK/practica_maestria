@@ -227,46 +227,41 @@ EOF
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
-                    sh '''
-                        set -eu
-
-                        echo "========================================"
-                        echo "PUBLICACIÓN EN DOCKER HUB"
-                        echo "========================================"
-
-                        export DOCKER_CONFIG="$(mktemp -d)"
-                        export DOCKER_HOST="tcp://host.docker.internal:2375"
-                        export DOCKER_TLS_VERIFY=""
-                        export DOCKER_CERT_PATH=""
-                        trap 'rm -rf "$DOCKER_CONFIG"' EXIT
-
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-
-                        BACKEND_LATEST="${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:latest"
-                        BACKEND_BUILD="${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}"
-                        BACKEND_TRACE="${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}-${GIT_SHORT}"
-
-                        FRONTEND_LATEST="${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:latest"
-                        FRONTEND_BUILD="${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}"
-                        FRONTEND_TRACE="${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}-${GIT_SHORT}"
-
-                        docker tag "${LOCAL_BACKEND_IMAGE}:latest" "$BACKEND_LATEST"
-                        docker tag "${LOCAL_BACKEND_IMAGE}:latest" "$BACKEND_BUILD"
-                        docker tag "${LOCAL_BACKEND_IMAGE}:latest" "$BACKEND_TRACE"
-
-                        docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_LATEST"
-                        docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_BUILD"
-                        docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_TRACE"
-                    '''
-
-                    // Bloque de reintento para esquivar fallos temporales de red hacia Docker Hub
+                    // Ahora el retry(3) envuelve TODO un solo bloque sh
                     retry(3) {
                         sh '''
-                            export DOCKER_CONFIG=/tmp
+                            set -eu
+
+                            echo "========================================"
+                            echo "PUBLICACIÓN EN DOCKER HUB"
+                            echo "========================================"
+
+                            export DOCKER_CONFIG="$(mktemp -d)"
                             export DOCKER_HOST="tcp://host.docker.internal:2375"
                             export DOCKER_TLS_VERIFY=""
                             export DOCKER_CERT_PATH=""
-                            
+                            trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                            BACKEND_LATEST="${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:latest"
+                            BACKEND_BUILD="${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}"
+                            BACKEND_TRACE="${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}-${GIT_SHORT}"
+
+                            FRONTEND_LATEST="${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:latest"
+                            FRONTEND_BUILD="${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}"
+                            FRONTEND_TRACE="${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}-${GIT_SHORT}"
+
+                            # Etiquetado
+                            docker tag "${LOCAL_BACKEND_IMAGE}:latest" "$BACKEND_LATEST"
+                            docker tag "${LOCAL_BACKEND_IMAGE}:latest" "$BACKEND_BUILD"
+                            docker tag "${LOCAL_BACKEND_IMAGE}:latest" "$BACKEND_TRACE"
+
+                            docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_LATEST"
+                            docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_BUILD"
+                            docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_TRACE"
+
+                            # Subida
                             docker push "$BACKEND_LATEST"
                             docker push "$BACKEND_BUILD"
                             docker push "$BACKEND_TRACE"
@@ -274,28 +269,25 @@ EOF
                             docker push "$FRONTEND_LATEST"
                             docker push "$FRONTEND_BUILD"
                             docker push "$FRONTEND_TRACE"
-                        '''
-                    }
 
-                    sh '''
-                        export DOCKER_CONFIG=/tmp
-                        export DOCKER_HOST="tcp://host.docker.internal:2375"
-                        export DOCKER_TLS_VERIFY=""
-                        export DOCKER_CERT_PATH=""
-
-                        cat > reports/docker-publish-metadata.txt <<EOF
-BACKEND_LATEST=${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:latest
-BACKEND_BUILD=${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
-BACKEND_TRACE=${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}-${GIT_SHORT}
-FRONTEND_LATEST=${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:latest
-FRONTEND_BUILD=${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
-FRONTEND_TRACE=${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}-${GIT_SHORT}
+                            # Metadatos
+                            mkdir -p reports
+                            cat > reports/docker-publish-metadata.txt <<EOF
+BACKEND_LATEST=${BACKEND_LATEST}
+BACKEND_BUILD=${BACKEND_BUILD}
+BACKEND_TRACE=${BACKEND_TRACE}
+FRONTEND_LATEST=${FRONTEND_LATEST}
+FRONTEND_BUILD=${FRONTEND_BUILD}
+FRONTEND_TRACE=${FRONTEND_TRACE}
 EOF
 
-                        docker logout >/dev/null 2>&1 || true
+                            docker logout >/dev/null 2>&1 || true
 
-                        echo "Imágenes publicadas correctamente en Docker Hub."
-                    '''
+                            echo "Imágenes publicadas correctamente en Docker Hub."
+                            echo "Backend trazable: $BACKEND_TRACE"
+                            echo "Frontend trazable: $FRONTEND_TRACE"
+                        '''
+                    }
                 }
             }
         }
