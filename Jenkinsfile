@@ -67,8 +67,8 @@ pipeline {
 
         stage('Docker - Validate') {
             steps {
-                // Forzamos las variables correctas para conectarnos al contenedor DinD
-                withEnv(['DOCKER_HOST=tcp://docker:2376', 'DOCKER_CERT_PATH=/certs/client', 'DOCKER_TLS_VERIFY=1']) {
+                // Apuntamos al Docker Desktop de tu Windows sin usar certificados TLS
+                withEnv(['DOCKER_HOST=tcp://host.docker.internal:2375', 'DOCKER_TLS_VERIFY=', 'DOCKER_CERT_PATH=']) {
                     sh 'docker compose config'
                 }
             }
@@ -76,8 +76,8 @@ pipeline {
 
         stage('Docker - Build') {
             steps {
-                // Volvemos a forzarlas para asegurar la construcción de las imágenes
-                withEnv(['DOCKER_HOST=tcp://docker:2376', 'DOCKER_CERT_PATH=/certs/client', 'DOCKER_TLS_VERIFY=1']) {
+                // Mismas variables para la construcción de las imágenes
+                withEnv(['DOCKER_HOST=tcp://host.docker.internal:2375', 'DOCKER_TLS_VERIFY=', 'DOCKER_CERT_PATH=']) {
                     sh 'docker compose build'
                 }
             }
