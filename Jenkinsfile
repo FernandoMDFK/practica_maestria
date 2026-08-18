@@ -130,11 +130,21 @@ pipeline {
 
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
+                        # Etiquetar con el número de compilación
                         docker tag ${LOCAL_BACKEND_IMAGE}:latest $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
                         docker tag ${LOCAL_FRONTEND_IMAGE}:latest $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
 
+                        # Etiquetar también como 'latest'
+                        docker tag ${LOCAL_BACKEND_IMAGE}:latest $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:latest
+                        docker tag ${LOCAL_FRONTEND_IMAGE}:latest $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:latest
+
+                        # Subir las imágenes con el número de compilación
                         docker push $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
                         docker push $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
+
+                        # Subir las imágenes con la etiqueta 'latest'
+                        docker push $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:latest
+                        docker push $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:latest
                     '''
                 }
             }
