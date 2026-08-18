@@ -83,7 +83,7 @@ pipeline {
                     export DOCKER_TLS_VERIFY=""
                     export DOCKER_CERT_PATH=""
                     
-                    docker compose config --quiet
+                    docker compose -p proyecto-integrador-u3 config --quiet
                 '''
             }
         }
@@ -96,7 +96,7 @@ pipeline {
                     export DOCKER_TLS_VERIFY=""
                     export DOCKER_CERT_PATH=""
                     
-                    docker compose build
+                    docker compose -p proyecto-integrador-u3 build
                 '''
             }
         }
