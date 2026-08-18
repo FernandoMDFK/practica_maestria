@@ -17,6 +17,12 @@ pipeline {
 
         REMOTE_BACKEND_IMAGE = 'proyecto-integrador-backend'
         REMOTE_FRONTEND_IMAGE = 'proyecto-integrador-frontend'
+
+        // Corrección: Variables globales para aislar el entorno y evitar rutas de Windows
+        DOCKER_CONFIG = '/tmp'
+        DOCKER_HOST = 'tcp://host.docker.internal:2375'
+        DOCKER_TLS_VERIFY = ''
+        DOCKER_CERT_PATH = ''
     }
 
     stages {
