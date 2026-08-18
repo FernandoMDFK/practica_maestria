@@ -67,19 +67,15 @@ pipeline {
 
         stage('Docker - Validate') {
             steps {
-                // Apuntamos al Docker Desktop de tu Windows sin usar certificados TLS
-                withEnv(['DOCKER_HOST=tcp://host.docker.internal:2375', 'DOCKER_TLS_VERIFY=', 'DOCKER_CERT_PATH=']) {
-                    sh 'docker compose config'
-                }
+                // Combinamos el salto de configuración local con el host correcto
+                sh 'DOCKER_CONFIG=/tmp DOCKER_HOST="tcp://host.docker.internal:2375" DOCKER_TLS_VERIFY="" DOCKER_CERT_PATH="" docker compose config'
             }
         }
 
         stage('Docker - Build') {
             steps {
-                // Mismas variables para la construcción de las imágenes
-                withEnv(['DOCKER_HOST=tcp://host.docker.internal:2375', 'DOCKER_TLS_VERIFY=', 'DOCKER_CERT_PATH=']) {
-                    sh 'docker compose build'
-                }
+                // Misma línea combinada para garantizar que la compilación funcione sin leer rutas de Windows
+                sh 'DOCKER_CONFIG=/tmp DOCKER_HOST="tcp://host.docker.internal:2375" DOCKER_TLS_VERIFY="" DOCKER_CERT_PATH="" docker compose build'
             }
         }
 
