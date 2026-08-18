@@ -1,4 +1,4 @@
- pipeline {
+pipeline {
 
     agent any
 
@@ -150,13 +150,27 @@ EOF
 
         stage('Docker - Validate') {
             steps {
-                sh 'docker compose config --quiet'
+                sh '''
+                    export DOCKER_CONFIG=/tmp
+                    export DOCKER_HOST="tcp://host.docker.internal:2375"
+                    export DOCKER_TLS_VERIFY=""
+                    export DOCKER_CERT_PATH=""
+
+                    docker compose -p proyecto-integrador-u3 config --quiet
+                '''
             }
         }
 
         stage('Docker - Build') {
             steps {
-                sh 'docker compose build --no-cache'
+                sh '''
+                    export DOCKER_CONFIG=/tmp
+                    export DOCKER_HOST="tcp://host.docker.internal:2375"
+                    export DOCKER_TLS_VERIFY=""
+                    export DOCKER_CERT_PATH=""
+
+                    docker compose -p proyecto-integrador-u3 build --no-cache
+                '''
             }
         }
 
@@ -164,6 +178,10 @@ EOF
             steps {
                 sh '''
                     set -eu
+                    export DOCKER_CONFIG=/tmp
+                    export DOCKER_HOST="tcp://host.docker.internal:2375"
+                    export DOCKER_TLS_VERIFY=""
+                    export DOCKER_CERT_PATH=""
 
                     echo "Verificando imágenes construidas..."
 
@@ -179,6 +197,10 @@ EOF
             steps {
                 sh '''
                     set -eu
+                    export DOCKER_CONFIG=/tmp
+                    export DOCKER_HOST="tcp://host.docker.internal:2375"
+                    export DOCKER_TLS_VERIFY=""
+                    export DOCKER_CERT_PATH=""
 
                     mkdir -p reports
 
@@ -208,13 +230,15 @@ EOF
                 ]) {
                     sh '''
                         set -eu
+                        export DOCKER_CONFIG="$(mktemp -d)"
+                        export DOCKER_HOST="tcp://host.docker.internal:2375"
+                        export DOCKER_TLS_VERIFY=""
+                        export DOCKER_CERT_PATH=""
+                        trap 'rm -rf "$DOCKER_CONFIG"' EXIT
 
                         echo "========================================"
                         echo "PUBLICACIÓN EN DOCKER HUB"
                         echo "========================================"
-
-                        export DOCKER_CONFIG="$(mktemp -d)"
-                        trap 'rm -rf "$DOCKER_CONFIG"' EXIT
 
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
@@ -367,7 +391,14 @@ EOF
         }
 
         always {
-            sh 'docker logout >/dev/null 2>&1 || true'
+            sh '''
+                export DOCKER_CONFIG=/tmp
+                export DOCKER_HOST="tcp://host.docker.internal:2375"
+                export DOCKER_TLS_VERIFY=""
+                export DOCKER_CERT_PATH=""
+                
+                docker logout >/dev/null 2>&1 || true
+            '''
 
             archiveArtifacts(
                 artifacts: 'reports/**',
