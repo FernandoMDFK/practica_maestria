@@ -67,15 +67,15 @@ pipeline {
 
         stage('Docker - Validate') {
             steps {
-                // Aplicamos la misma limpieza de contexto aquí por seguridad
-                sh 'DOCKER_CONFIG=/tmp DOCKER_CONTEXT=default docker compose config'
+                // Vaciamos las variables directamente en la línea de ejecución
+                sh 'DOCKER_HOST="" DOCKER_TLS_VERIFY="" DOCKER_CERT_PATH="" docker compose config'
             }
         }
 
         stage('Docker - Build') {
             steps {
-                // Comando directo y limpio usando el contexto nativo de Linux
-                sh 'DOCKER_CONFIG=/tmp DOCKER_CONTEXT=default docker compose build'
+                // Obligamos a Docker a buscar el socket nativo de Linux (/var/run/docker.sock)
+                sh 'DOCKER_HOST="" DOCKER_TLS_VERIFY="" DOCKER_CERT_PATH="" docker compose build'
             }
         }
 
