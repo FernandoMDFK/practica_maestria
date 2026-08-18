@@ -74,7 +74,7 @@ pipeline {
         stage('Docker - Build') {
             steps {
                 // Envolvemos el comando para vaciar variables de entorno conflictivas
-                withEnv(['DOCKER_CERT_PATH=', 'DOCKER_TLS_VERIFY=']) {
+                withEnv(['DOCKER_HOST=', 'DOCKER_CERT_PATH=', 'DOCKER_TLS_VERIFY=']) {
                     sh 'docker compose build'
                 }
             }
