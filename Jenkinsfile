@@ -17,12 +17,6 @@ pipeline {
 
         REMOTE_BACKEND_IMAGE = 'proyecto-integrador-backend'
         REMOTE_FRONTEND_IMAGE = 'proyecto-integrador-frontend'
-
-        // Corrección: Variables globales para aislar el entorno y evitar rutas de Windows
-        DOCKER_CONFIG = '/tmp'
-        DOCKER_HOST = 'tcp://host.docker.internal:2375'
-        DOCKER_TLS_VERIFY = ''
-        DOCKER_CERT_PATH = ''
     }
 
     stages {
@@ -83,19 +77,38 @@ pipeline {
 
         stage('Docker - Validate') {
             steps {
-                sh 'docker compose config --quiet'
+                sh '''
+                    export DOCKER_CONFIG=/tmp
+                    export DOCKER_HOST="tcp://host.docker.internal:2375"
+                    export DOCKER_TLS_VERIFY=""
+                    export DOCKER_CERT_PATH=""
+                    
+                    docker compose config --quiet
+                '''
             }
         }
 
         stage('Docker - Build') {
             steps {
-                sh 'docker compose build'
+                sh '''
+                    export DOCKER_CONFIG=/tmp
+                    export DOCKER_HOST="tcp://host.docker.internal:2375"
+                    export DOCKER_TLS_VERIFY=""
+                    export DOCKER_CERT_PATH=""
+                    
+                    docker compose build
+                '''
             }
         }
 
         stage('Docker - Verify Images') {
             steps {
                 sh '''
+                    export DOCKER_CONFIG=/tmp
+                    export DOCKER_HOST="tcp://host.docker.internal:2375"
+                    export DOCKER_TLS_VERIFY=""
+                    export DOCKER_CERT_PATH=""
+
                     docker image inspect ${LOCAL_BACKEND_IMAGE} > /dev/null
                     docker image inspect ${LOCAL_FRONTEND_IMAGE} > /dev/null
                 '''
@@ -104,33 +117,24 @@ pipeline {
 
         stage('Docker - Publish') {
             steps {
-
                 withCredentials([usernamePassword(
                     credentialsId: 'Jenkins-TokenHub',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-
                     sh '''
-                        echo "$DOCKER_PASS" | docker login \
-                            -u "$DOCKER_USER" \
-                            --password-stdin
+                        export DOCKER_CONFIG=/tmp
+                        export DOCKER_HOST="tcp://host.docker.internal:2375"
+                        export DOCKER_TLS_VERIFY=""
+                        export DOCKER_CERT_PATH=""
 
-                        docker tag \
-                            ${LOCAL_BACKEND_IMAGE}:latest \
-                            $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                        docker tag \
-                            ${LOCAL_FRONTEND_IMAGE}:latest \
-                            $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
+                        docker tag ${LOCAL_BACKEND_IMAGE}:latest $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
+                        docker tag ${LOCAL_FRONTEND_IMAGE}:latest $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
 
-                        docker push \
-                            $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
-
-                        docker push \
-                            $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
-
-                        docker logout
+                        docker push $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
+                        docker push $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
                     '''
                 }
             }
@@ -138,7 +142,6 @@ pipeline {
     }
 
     post {
-
         success {
             echo 'Pipeline satisfactorio'
             echo 'Imágenes publicadas correctamente en Docker Hub'
@@ -149,7 +152,14 @@ pipeline {
         }
 
         always {
-            sh 'docker logout || true'
+            sh '''
+                export DOCKER_CONFIG=/tmp
+                export DOCKER_HOST="tcp://host.docker.internal:2375"
+                export DOCKER_TLS_VERIFY=""
+                export DOCKER_CERT_PATH=""
+                
+                docker logout || true
+            '''
         }
     }
 }
