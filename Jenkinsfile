@@ -1,4 +1,5 @@
 pipeline {
+
     agent any
 
     tools {
@@ -7,6 +8,15 @@ pipeline {
 
     options {
         timestamps()
+        skipDefaultCheckout(true)
+    }
+
+    environment {
+        LOCAL_BACKEND_IMAGE = 'proyecto-integrador-u3-backend'
+        LOCAL_FRONTEND_IMAGE = 'proyecto-integrador-u3-frontend'
+
+        REMOTE_BACKEND_IMAGE = 'proyecto-integrador-backend'
+        REMOTE_FRONTEND_IMAGE = 'proyecto-integrador-frontend'
     }
 
     stages {
@@ -67,27 +77,73 @@ pipeline {
 
         stage('Docker - Validate') {
             steps {
-                // Combinamos el salto de configuración local con el host correcto
-                sh 'DOCKER_CONFIG=/tmp DOCKER_HOST="tcp://host.docker.internal:2375" DOCKER_TLS_VERIFY="" DOCKER_CERT_PATH="" docker compose config'
+                sh 'docker compose config --quiet'
             }
         }
 
         stage('Docker - Build') {
             steps {
-                // Misma línea combinada para garantizar que la compilación funcione sin leer rutas de Windows
-                sh 'DOCKER_CONFIG=/tmp DOCKER_HOST="tcp://host.docker.internal:2375" DOCKER_TLS_VERIFY="" DOCKER_CERT_PATH="" docker compose build'
+                sh 'docker compose build'
             }
         }
 
+        stage('Docker - Verify Images') {
+            steps {
+                sh '''
+                    docker image inspect ${LOCAL_BACKEND_IMAGE} > /dev/null
+                    docker image inspect ${LOCAL_FRONTEND_IMAGE} > /dev/null
+                '''
+            }
+        }
+
+        stage('Docker - Publish') {
+            steps {
+
+                withCredentials([usernamePassword(
+                    credentialsId: 'Jenkins-TokenHub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login \
+                            -u "$DOCKER_USER" \
+                            --password-stdin
+
+                        docker tag \
+                            ${LOCAL_BACKEND_IMAGE}:latest \
+                            $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
+
+                        docker tag \
+                            ${LOCAL_FRONTEND_IMAGE}:latest \
+                            $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
+
+                        docker push \
+                            $DOCKER_USER/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
+
+                        docker push \
+                            $DOCKER_USER/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
+
+                        docker logout
+                    '''
+                }
+            }
+        }
     }
 
     post {
+
         success {
             echo 'Pipeline satisfactorio'
+            echo 'Imágenes publicadas correctamente en Docker Hub'
         }
 
         failure {
             echo 'Revisar la primera etapa fallida y sus logs'
+        }
+
+        always {
+            sh 'docker logout || true'
         }
     }
 }
