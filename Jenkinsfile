@@ -67,20 +67,19 @@ pipeline {
 
         stage('Docker - Validate') {
             steps {
-                sh 'docker compose config'
+                // Aplicamos la misma limpieza de contexto aquí por seguridad
+                sh 'DOCKER_CONFIG=/tmp DOCKER_CONTEXT=default docker compose config'
             }
         }
 
         stage('Docker - Build') {
             steps {
-                // Envolvemos el comando para vaciar variables de entorno conflictivas
-                withEnv(['DOCKER_HOST=', 'DOCKER_CERT_PATH=', 'DOCKER_TLS_VERIFY=']) {
-                    sh 'docker compose build'
-                }
+                // Comando directo y limpio usando el contexto nativo de Linux
+                sh 'DOCKER_CONFIG=/tmp DOCKER_CONTEXT=default docker compose build'
             }
         }
 
-    } // <--- Esta es la llave que faltaba para cerrar "stages"
+    }
 
     post {
         success {
