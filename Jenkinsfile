@@ -67,15 +67,19 @@ pipeline {
 
         stage('Docker - Validate') {
             steps {
-                // Vaciamos las variables directamente en la línea de ejecución
-                sh 'DOCKER_HOST="" DOCKER_TLS_VERIFY="" DOCKER_CERT_PATH="" docker compose config'
+                // Forzamos las variables correctas para conectarnos al contenedor DinD
+                withEnv(['DOCKER_HOST=tcp://docker:2376', 'DOCKER_CERT_PATH=/certs/client', 'DOCKER_TLS_VERIFY=1']) {
+                    sh 'docker compose config'
+                }
             }
         }
 
         stage('Docker - Build') {
             steps {
-                // Obligamos a Docker a buscar el socket nativo de Linux (/var/run/docker.sock)
-                sh 'DOCKER_HOST="" DOCKER_TLS_VERIFY="" DOCKER_CERT_PATH="" docker compose build'
+                // Volvemos a forzarlas para asegurar la construcción de las imágenes
+                withEnv(['DOCKER_HOST=tcp://docker:2376', 'DOCKER_CERT_PATH=/certs/client', 'DOCKER_TLS_VERIFY=1']) {
+                    sh 'docker compose build'
+                }
             }
         }
 
