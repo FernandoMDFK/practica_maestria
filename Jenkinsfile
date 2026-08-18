@@ -1,5 +1,4 @@
 pipeline {
-
     agent any
 
     tools {
@@ -230,15 +229,16 @@ EOF
                 ]) {
                     sh '''
                         set -eu
+
+                        echo "========================================"
+                        echo "PUBLICACIÓN EN DOCKER HUB"
+                        echo "========================================"
+
                         export DOCKER_CONFIG="$(mktemp -d)"
                         export DOCKER_HOST="tcp://host.docker.internal:2375"
                         export DOCKER_TLS_VERIFY=""
                         export DOCKER_CERT_PATH=""
                         trap 'rm -rf "$DOCKER_CONFIG"' EXIT
-
-                        echo "========================================"
-                        echo "PUBLICACIÓN EN DOCKER HUB"
-                        echo "========================================"
 
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
@@ -257,29 +257,44 @@ EOF
                         docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_LATEST"
                         docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_BUILD"
                         docker tag "${LOCAL_FRONTEND_IMAGE}:latest" "$FRONTEND_TRACE"
+                    '''
 
-                        docker push "$BACKEND_LATEST"
-                        docker push "$BACKEND_BUILD"
-                        docker push "$BACKEND_TRACE"
+                    // Bloque de reintento para esquivar fallos temporales de red hacia Docker Hub
+                    retry(3) {
+                        sh '''
+                            export DOCKER_CONFIG=/tmp
+                            export DOCKER_HOST="tcp://host.docker.internal:2375"
+                            export DOCKER_TLS_VERIFY=""
+                            export DOCKER_CERT_PATH=""
+                            
+                            docker push "$BACKEND_LATEST"
+                            docker push "$BACKEND_BUILD"
+                            docker push "$BACKEND_TRACE"
 
-                        docker push "$FRONTEND_LATEST"
-                        docker push "$FRONTEND_BUILD"
-                        docker push "$FRONTEND_TRACE"
+                            docker push "$FRONTEND_LATEST"
+                            docker push "$FRONTEND_BUILD"
+                            docker push "$FRONTEND_TRACE"
+                        '''
+                    }
+
+                    sh '''
+                        export DOCKER_CONFIG=/tmp
+                        export DOCKER_HOST="tcp://host.docker.internal:2375"
+                        export DOCKER_TLS_VERIFY=""
+                        export DOCKER_CERT_PATH=""
 
                         cat > reports/docker-publish-metadata.txt <<EOF
-BACKEND_LATEST=${BACKEND_LATEST}
-BACKEND_BUILD=${BACKEND_BUILD}
-BACKEND_TRACE=${BACKEND_TRACE}
-FRONTEND_LATEST=${FRONTEND_LATEST}
-FRONTEND_BUILD=${FRONTEND_BUILD}
-FRONTEND_TRACE=${FRONTEND_TRACE}
+BACKEND_LATEST=${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:latest
+BACKEND_BUILD=${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}
+BACKEND_TRACE=${DOCKER_USER}/${REMOTE_BACKEND_IMAGE}:${BUILD_NUMBER}-${GIT_SHORT}
+FRONTEND_LATEST=${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:latest
+FRONTEND_BUILD=${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}
+FRONTEND_TRACE=${DOCKER_USER}/${REMOTE_FRONTEND_IMAGE}:${BUILD_NUMBER}-${GIT_SHORT}
 EOF
 
                         docker logout >/dev/null 2>&1 || true
 
                         echo "Imágenes publicadas correctamente en Docker Hub."
-                        echo "Backend trazable: $BACKEND_TRACE"
-                        echo "Frontend trazable: $FRONTEND_TRACE"
                     '''
                 }
             }
@@ -396,7 +411,7 @@ EOF
                 export DOCKER_HOST="tcp://host.docker.internal:2375"
                 export DOCKER_TLS_VERIFY=""
                 export DOCKER_CERT_PATH=""
-                
+
                 docker logout >/dev/null 2>&1 || true
             '''
 
