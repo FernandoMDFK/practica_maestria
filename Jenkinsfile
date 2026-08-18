@@ -33,6 +33,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
+                    deleteDir()
                     def scmVars = checkout scm
 
                     env.SCM_GIT_BRANCH = scmVars.GIT_BRANCH ?: ''
