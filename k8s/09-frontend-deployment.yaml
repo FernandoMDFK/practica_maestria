@@ -23,19 +23,19 @@ spec:
           image: practica-frontend:v1
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 5173
+            - containerPort: 80  # <-- CAMBIAR A 80
           envFrom:
             - configMapRef:
                 name: frontend-config
           readinessProbe:
             httpGet:
               path: /
-              port: 5173
+              port: 80  # <-- CAMBIAR A 80
             initialDelaySeconds: 5
             periodSeconds: 5
           livenessProbe:
             httpGet:
               path: /
-              port: 5173
+              port: 80  # <-- CAMBIAR A 80
             initialDelaySeconds: 15
             periodSeconds: 10

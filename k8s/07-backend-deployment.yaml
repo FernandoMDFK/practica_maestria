@@ -22,7 +22,7 @@ spec:
         - name: backend
           image: practica-backend:v1
           imagePullPolicy: IfNotPresent
-          command: ["npm", "run", "dev"]
+          # SE ELIMINÓ LA LÍNEA DE COMMAND
           ports:
             - containerPort: 3000
           envFrom:
